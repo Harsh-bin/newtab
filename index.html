@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Firefox New Tab</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Light Theme Variables */
+            --light-primary: #4285f4;
+            --light-secondary: #f1f3f4;
+            --light-background: #ffffff;
+            --light-card: #ffffff;
+            --light-text: #202124;
+            --light-shadow: rgba(0, 0, 0, 0.1);
+            --light-overlay: rgba(255, 255, 255, 0.8);
+            
+            /* Dark Theme Variables */
+            --dark-primary: #8ab4f8;
+            --dark-secondary: #5f6368;
+            --dark-background: #202124;
+            --dark-card: #303134;
+            --dark-text: #e8eaed;
+            --dark-shadow: rgba(0, 0, 0, 0.3);
+            --dark-overlay: rgba(32, 33, 36, 0.85);
+            
+            /* Common Variables */
+            --accent: #e91e63;
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --transition: all 0.3s ease;
+            --blur: 10px;
+            --radius: 16px;
+            --border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Apply theme variables */
+        [data-theme="light"] {
+            --primary: var(--light-primary);
+            --secondary: var(--light-secondary);
+            --background: var(--light-background);
+            --card: var(--light-card);
+            --text: var(--light-text);
+            --shadow: var(--light-shadow);
+            --overlay: var(--light-overlay);
+        }
+
+        [data-theme="dark"] {
+            --primary: var(--dark-primary);
+            --secondary: var(--dark-secondary);
+            --background: var(--dark-background);
+            --card: var(--dark-card);
+            --text: var(--dark-text);
+            --shadow: var(--dark-shadow);
+            --overlay: var(--dark-overlay);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif; /* Changed font to Inter */
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--background);
+            color: var(--text);
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Dynamic Background */
+        .background-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .background-image.active {
+            opacity: 1;
+        }
+
+        .background-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 100%);
+            z-index: 1;
+        }
+
+        /* Header with Settings */
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px;
+            z-index: 10;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .theme-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: var(--border);
+        }
+
+        .topic-menu {
+            position: absolute;
+            top: 60px;
+            left: 15px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px;
+            width: 200px;
+            box-shadow: 0 10px 25px var(--shadow);
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+        }
+
+        .topic-menu.active {
+            display: block;
+        }
+
+        .topic-menu h3 {
+            margin-bottom: 15px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        .topic-option {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: var(--transition);
+            display: flex; /* Added for NSFW toggle alignment */
+            justify-content: space-between; /* Added for NSFW toggle alignment */
+            align-items: center; /* Added for NSFW toggle alignment */
+        }
+
+        .topic-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* NSFW Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            z-index: 5;
+        }
+
+        /* Search Container */
+        .search-container {
+            width: 100%;
+            max-width: 680px;
+            margin-bottom: 40px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--overlay);
+            border-radius: 50px;
+            padding: 10px 20px;
+            box-shadow: 0 8px 20px var(--shadow);
+            border: var(--border);
+            backdrop-filter: blur(var(--blur));
+            height: 50px;
+        }
+
+        .search-engine-selector {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-right: 12px;
+        }
+
+        .search-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .search-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .search-engine-dropdown {
+            position: absolute;
+            top: 45px;
+            left: 0;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 12px;
+            width: 200px;
+            box-shadow: 0 10px 25px var(--shadow);
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+        }
+
+        .search-engine-dropdown.active {
+            display: block;
+        }
+
+        .search-engine-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 5px;
+        }
+
+        .search-engine-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-engine-option .logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .search-engine-option .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: var(--text);
+            padding: 5px 0;
+            height: 30px;
+        }
+
+        .search-input::placeholder {
+            color: var(--secondary);
+        }
+
+        .search-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            transition: var(--transition);
+        }
+
+        .search-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Pinned Sites */
+        .pinned-sites {
+            width: 100%;
+            max-width: 900px;
+            padding: 0 15px;
+        }
+
+        .sites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 18px;
+        }
+
+        .site-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .site-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: var(--overlay);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px var(--shadow);
+            transition: var(--transition);
+            border: var(--border);
+            backdrop-filter: blur(var(--blur));
+        }
+
+        .site-card:hover .site-icon {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .site-icon img {
+            width: 28px;
+            height: 28px;
+            object-fit: cover;
+        }
+
+        .site-icon i {
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        .site-name {
+            text-align: center;
+            font-size: 0.8rem;
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text);
+            font-weight: 500;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .site-actions {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .site-card:hover .site-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: var(--card);
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 12px;
+            box-shadow: 0 3px 8px var(--shadow);
+            border: var(--border);
+            backdrop-filter: blur(var(--blur));
+        }
+
+        .action-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .action-menu {
+            position: absolute;
+            top: 30px;
+            right: 0;
+            background: var(--card);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 140px;
+            box-shadow: 0 10px 25px var(--shadow);
+            display: none;
+            z-index: 30;
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+        }
+
+        .action-menu.active {
+            display: block;
+        }
+
+        .action-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .action-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .action-item i {
+            margin-right: 8px;
+            width: 18px;
+            text-align: center;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        /* Modal for adding/editing sites */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 18px;
+            width: 90%;
+            max-width: 450px;
+            padding: 25px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: var(--border);
+            backdrop-filter: blur(var(--blur));
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: var(--text);
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            font-size: 1.7rem;
+            cursor: pointer;
+            color: var(--secondary);
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--overlay);
+            border: var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: var(--transition);
+            color: var(--text);
+            backdrop-filter: blur(var(--blur));
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-cancel {
+            background: var(--secondary);
+            color: var(--text);
+        }
+
+        .btn-delete {
+            background: var(--danger);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sites-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 15px;
+            }
+            
+            .site-icon {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .search-box {
+                padding: 8px 16px;
+                height: 46px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sites-grid {
+                grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+                gap: 12px;
+            }
+            
+            .site-icon {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .site-name {
+                font-size: 0.75rem;
+            }
+            
+            .search-box {
+                padding: 8px 14px;
+                height: 44px;
+            }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card);
+            color: var(--text);
+            padding: 12px 24px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px var(--shadow);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* New topic button */
+        .topic-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+            backdrop-filter: blur(var(--blur));
+            border: var(--border);
+            z-index: 1000; /* Increased z-index */
+            pointer-events: auto; /* Ensure it's clickable */
+        }
+
+        .topic-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- Dynamic Background -->
+    <div class="background-container">
+        <div class="background-overlay"></div>
+        <!-- Background images will be added here dynamically -->
+        <div class="spinner" id="backgroundSpinner"></div>
+    </div>
+
+    <!-- Topic Button -->
+    <button class="topic-btn" id="topicBtn" title="Change Background Topic">
+        <i class="fas fa-image"></i>
+    </button>
+    
+    <!-- Topic Menu -->
+    <div class="topic-menu" id="topicMenu">
+        <h3><i class="fas fa-image"></i> Background Topics</h3>
+        <div class="topic-option" data-topic="marvel">Marvel</div>
+        <div class="topic-option" data-topic="ironman">Iron Man</div>
+        <div class="topic-option" data-topic="batman">Batman</div>
+        <div class="topic-option" data-topic="superman">Superman</div>
+        <div class="topic-option" data-topic="cars">Cars</div>
+        <div class="topic-option" data-topic="aespa">Aespa</div>
+        <div class="topic-option" data-topic="korean girls">Korean Girls</div>
+        <div class="topic-option" data-topic="anime">Anime</div>
+        <div class="topic-option" data-topic="nature">Nature</div>
+        <div class="topic-option" data-topic="random">Random</div>
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+        <div class="topic-option">
+            <span>NSFW Content</span>
+            <label class="switch">
+                <input type="checkbox" id="nsfwToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Header with Settings -->
+    <div class="header">
+        <button class="header-btn theme-btn" id="themeBtn" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="search-box">
+                <div class="search-engine-selector" id="engineSelector">
+                    <div class="search-logo" id="currentEngine">
+                        <img src="https://www.google.com/favicon.ico" alt="Google">
+                    </div>
+                    <div class="search-engine-dropdown" id="engineDropdown">
+                        <div class="search-engine-option" data-engine="google">
+                            <div class="logo">
+                                <img src="https://www.google.com/favicon.ico" alt="Google">
+                            </div>
+                            <span>Google</span>
+                        </div>
+                        <div class="search-engine-option" data-engine="bing">
+                            <div class="logo">
+                                <img src="https://www.bing.com/favicon.ico" alt="Bing">
+                            </div>
+                            <span>Bing</span>
+                        </div>
+                        <div class="search-engine-option" data-engine="duckduckgo">
+                            <div class="logo">
+                                <img src="https://duckduckgo.com/favicon.ico" alt="DuckDuckGo">
+                            </div>
+                            <span>DuckDuckGo</span>
+                        </div>
+                        <div class="search-engine-option" data-engine="youtube">
+                            <div class="logo">
+                                <img src="https://www.youtube.com/favicon.ico" alt="YouTube">
+                            </div>
+                            <span>YouTube</span>
+                        </div>
+                        <div class="search-engine-option" data-engine="wikipedia">
+                            <div class="logo">
+                                <img src="https://www.wikipedia.org/static/favicon/wikipedia.ico" alt="Wikipedia">
+                            </div>
+                            <span>Wikipedia</span>
+                        </div>
+                    </div>
+                </div>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search the web...">
+                <button class="search-btn" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Pinned Sites -->
+        <div class="pinned-sites">
+            <div class="sites-grid" id="sitesGrid">
+                <!-- Pinned sites will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing sites -->
+    <div class="modal" id="siteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Add New Site</h3>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="siteName"><i class="fas fa-tag"></i> Site Name</label>
+                <input type="text" class="form-input" id="siteName" placeholder="Enter site name">
+            </div>
+            <div class="form-group">
+                <label for="siteUrl"><i class="fas fa-link"></i> Site URL</label>
+                <input type="url" class="form-input" id="siteUrl" placeholder="https://example.com">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-delete" id="deleteBtn" style="display: none;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button class="btn btn-cancel" id="cancelBtn">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn" id="saveBtn">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // =========================================================================
+        // DATA AND STATE MANAGEMENT
+        // =========================================================================
+        
+        // Default pinned sites
+        const defaultPinnedSites = [
+            { id: 1, name: "Google", url: "https://google.com", favicon: "https://www.google.com/favicon.ico" },
+            { id: 2, name: "YouTube", url: "https://youtube.com", favicon: "https://www.youtube.com/favicon.ico" },
+            { id: 3, name: "Wikipedia", url: "https://wikipedia.org", favicon: "https://www.wikipedia.org/static/favicon/wikipedia.ico" },
+            { id: 4, name: "Gmail", url: "https://mail.google.com", favicon: "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico" },
+            { id: 5, name: "GitHub", url: "https://github.com", favicon: "https://github.githubassets.com/favicons/favicon.ico" }
+        ];
+        
+        // Search engines configuration with icon URLs
+        const searchEngines = {
+            google: {
+                name: "Google",
+                url: "https://www.google.com/search?q=",
+                icon: "https://www.google.com/favicon.ico",
+                color: "#4285F4"
+            },
+            bing: {
+                name: "Bing",
+                url: "https://www.bing.com/search?q=",
+                icon: "https://www.bing.com/favicon.ico",
+                color: "#008373"
+            },
+            duckduckgo: {
+                name: "DuckDuckGo",
+                url: "https://duckduckgo.com/?q=",
+                icon: "https://duckduckgo.com/favicon.ico",
+                color: "#DE5833"
+            },
+            youtube: {
+                name: "YouTube",
+                url: "https://www.youtube.com/results?search_query=",
+                icon: "https://www.youtube.com/favicon.ico",
+                color: "#FF0000"
+            },
+            wikipedia: {
+                name: "Wikipedia",
+                url: "https://en.wikipedia.org/w/index.php?search=",
+                icon: "https://www.wikipedia.org/static/favicon/wikipedia.ico",
+                color: "#636466"
+            }
+        };
+        
+        // Background topics
+        const backgroundTopics = [
+            "marvel", "ironman", "batman", "superman", "cars", 
+            "aespa", "korean girls", "anime", "nature", "random"
+        ];
+        
+        // Current state
+        let state = {
+            pinnedSites: [],
+            currentSearchEngine: "google",
+            backgroundImages: [],
+            currentBackgroundIndex: 0,
+            editingSite: null,
+            theme: "dark",
+            currentTopic: "random",
+            isFetching: false,
+            allowNSFW: false // New state for NSFW content
+        };
+        
+        let backgroundInterval; // Variable to hold the interval ID
+
+        // =========================================================================
+        // DOM ELEMENTS
+        // =========================================================================
+        const elements = {
+            themeBtn: document.getElementById('themeBtn'),
+            topicBtn: document.getElementById('topicBtn'),
+            topicMenu: document.getElementById('topicMenu'),
+            nsfwToggle: document.getElementById('nsfwToggle'), // New NSFW toggle
+            engineSelector: document.getElementById('engineSelector'),
+            engineDropdown: document.getElementById('engineDropdown'),
+            currentEngine: document.getElementById('currentEngine'),
+            searchInput: document.getElementById('searchInput'),
+            searchBtn: document.getElementById('searchBtn'),
+            sitesGrid: document.getElementById('sitesGrid'),
+            siteModal: document.getElementById('siteModal'),
+            modalTitle: document.getElementById('modalTitle'),
+            siteName: document.getElementById('siteName'),
+            siteUrl: document.getElementById('siteUrl'),
+            closeModal: document.getElementById('closeModal'),
+            cancelBtn: document.getElementById('cancelBtn'),
+            saveBtn: document.getElementById('saveBtn'),
+            deleteBtn: document.getElementById('deleteBtn'),
+            toast: document.getElementById('toast'),
+            backgroundContainer: document.querySelector('.background-container'),
+            backgroundSpinner: document.getElementById('backgroundSpinner') // Spinner element
+        };
+        
+        // =========================================================================
+        // INITIALIZATION
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved state
+            loadState();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Initialize the UI
+            initializeUI();
+            
+            // Start background rotation
+            startBackgroundRotation();
+        });
+        
+        function loadState() {
+            const savedState = localStorage.getItem('newTabState');
+            
+            if (savedState) {
+                state = JSON.parse(savedState);
+            } else {
+                // Set default state
+                state.pinnedSites = [...defaultPinnedSites];
+                state.currentSearchEngine = "google";
+                state.backgroundImages = [];
+                state.currentBackgroundIndex = 0;
+                state.theme = "dark";
+                state.currentTopic = "random";
+                state.allowNSFW = false;
+            }
+            
+            // Apply theme
+            document.body.setAttribute('data-theme', state.theme);
+            updateThemeIcon();
+
+            // Set NSFW toggle state
+            elements.nsfwToggle.checked = state.allowNSFW;
+        }
+        
+        function saveState() {
+            localStorage.setItem('newTabState', JSON.stringify(state));
+        }
+        
+        function setupEventListeners() {
+            // Theme toggle
+            elements.themeBtn.addEventListener('click', toggleTheme);
+            
+            // Topic button
+            elements.topicBtn.addEventListener('click', () => {
+                console.log("Topic button clicked!"); // Debugging log
+                toggleTopicMenu();
+            });
+            
+            // Topic selection
+            document.querySelectorAll('.topic-option[data-topic]').forEach(option => {
+                option.addEventListener('click', () => {
+                    const topic = option.dataset.topic;
+                    console.log(`Topic selected: ${topic}`); // Debugging log
+                    changeBackgroundTopic(topic);
+                    elements.topicMenu.classList.remove('active');
+                });
+            });
+
+            // NSFW toggle
+            elements.nsfwToggle.addEventListener('change', (e) => {
+                console.log(`NSFW toggle changed to: ${e.target.checked}`); // Debugging log
+                state.allowNSFW = e.target.checked;
+                saveState();
+                showToast(`NSFW content ${state.allowNSFW ? 'enabled' : 'disabled'}. Reloading backgrounds...`);
+                // Re-fetch backgrounds with new purity setting
+                fetchWallhavenImages(state.currentTopic); 
+            });
+            
+            // Search engine selector
+            elements.engineSelector.addEventListener('click', toggleEngineDropdown);
+            
+            // Search functionality
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+            elements.searchBtn.addEventListener('click', performSearch);
+            
+            // Modal controls
+            elements.closeModal.addEventListener('click', closeSiteModal);
+            elements.cancelBtn.addEventListener('click', closeSiteModal);
+            elements.saveBtn.addEventListener('click', saveSite);
+            elements.deleteBtn.addEventListener('click', deleteSite);
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!elements.engineSelector.contains(e.target)) {
+                    elements.engineDropdown.classList.remove('active');
+                }
+                
+                // Ensure clicking the NSFW toggle itself doesn't close the menu
+                if (!elements.topicMenu.contains(e.target) && e.target !== elements.topicBtn && !e.target.closest('.switch')) {
+                    elements.topicMenu.classList.remove('active');
+                }
+            });
+        }
+        
+        function initializeUI() {
+            // Set current search engine
+            setSearchEngine(state.currentSearchEngine);
+            
+            // Display pinned sites
+            renderPinnedSites();
+            
+            // Initialize background images
+            if (state.backgroundImages.length > 0) {
+                loadBackgroundImages();
+            } else {
+                // Fetch initial backgrounds
+                fetchWallhavenImages(state.currentTopic);
+            }
+        }
+        
+        // =========================================================================
+        // THEME MANAGEMENT
+        // =========================================================================
+        function toggleTheme() {
+            state.theme = state.theme === "dark" ? "light" : "dark";
+            document.body.setAttribute('data-theme', state.theme);
+            updateThemeIcon();
+            saveState();
+        }
+        
+        function updateThemeIcon() {
+            const icon = elements.themeBtn.querySelector('i');
+            if (state.theme === "dark") {
+                icon.className = "fas fa-moon";
+            } else {
+                icon.className = "fas fa-sun";
+            }
+        }
+        
+        // =========================================================================
+        // BACKGROUND IMAGES WITH WALLHAVEN API
+        // =========================================================================
+        async function fetchWallhavenImages(topic = "random") {
+            if (state.isFetching) {
+                console.log("Already fetching images, skipping new request.");
+                return;
+            }
+            
+            state.isFetching = true;
+            state.currentTopic = topic;
+            state.currentBackgroundIndex = 0;
+            state.backgroundImages = []; // Clear existing images immediately
+
+            // Show loading spinner
+            elements.backgroundSpinner.style.display = 'block';
+            showToast(`Loading ${topic} backgrounds...`);
+            
+            try {
+                // YOUR WALLHAVEN API KEY
+                const API_KEY = "WxswvwvoQBbaaVAE4wv0Drd1K1idGkiP"; 
+                let apiUrl = "https://wallhaven.cc/api/v1/search";
+                
+                // Determine purity based on NSFW toggle
+                // 100 = SFW (Safe For Work)
+                // 110 = SFW + NSFW (Not Safe For Work)
+                const purity = state.allowNSFW ? "110" : "100"; 
+                
+                if (topic === "random") {
+                    apiUrl += `?sorting=random&purity=${purity}&atleast=1920x1080&apikey=${API_KEY}`;
+                } else {
+                    const encodedTopic = encodeURIComponent(topic);
+                    apiUrl += `?q=${encodedTopic}&sorting=random&purity=${purity}&atleast=1920x1080&apikey=${API_KEY}`;
+                }
+                
+                console.log("Attempting to fetch Wallhaven images from URL:", apiUrl); // Log the URL
+                
+                const response = await fetch(apiUrl);
+                console.log("Wallhaven API Response Status:", response.status); // Log response status
+                
+                if (!response.ok) {
+                    const errorText = await response.text(); // Try to get more details from response body
+                    throw new Error(`HTTP error! Status: ${response.status}. Details: ${errorText}`);
+                }
+                const data = await response.json();
+                console.log("Wallhaven API Response Data:", data); // Log full response data
+                
+                if (data.data && data.data.length > 0) {
+                    state.backgroundImages = data.data.map(item => item.path);
+                    saveState();
+                    loadBackgroundImages();
+                    showToast(`Loaded ${state.backgroundImages.length} ${topic} backgrounds`);
+                } else {
+                    showToast("No images found for this topic. Trying random.");
+                    // Fallback to random if no specific topic images found
+                    if (topic !== "random") {
+                        fetchWallhavenImages("random");
+                    } else {
+                        throw new Error("No images found even for random topic.");
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching wallpapers:", error);
+                showToast(`Failed to load backgrounds: ${error.message}. This might be due to CORS if running locally, or an invalid API key.`);
+                
+                // No fallback images as requested, background will be body's default color
+                state.backgroundImages = []; 
+                loadBackgroundImages(); // Clear any existing images
+            } finally {
+                elements.backgroundSpinner.style.display = 'none'; // Hide spinner
+                state.isFetching = false;
+            }
+        }
+        
+        function loadBackgroundImages() {
+            // Clear existing images
+            elements.backgroundContainer.querySelectorAll('.background-image').forEach(el => el.remove());
+            
+            if (state.backgroundImages.length === 0) {
+                // If no images, ensure no active image is left
+                return;
+            }
+
+            // Preload images and add them to the DOM
+            const newImages = [];
+            let loadedCount = 0;
+
+            state.backgroundImages.forEach((src) => {
+                const img = new Image();
+                img.classList.add('background-image');
+                img.src = src;
+                img.onload = () => {
+                    loadedCount++;
+                    if (loadedCount === state.backgroundImages.length || loadedCount >= 5) { // Load at least 5 for quick start
+                        // Once enough images are loaded, set the first one active
+                        if (newImages[state.currentBackgroundIndex]) {
+                            newImages[state.currentBackgroundIndex].classList.add('active');
+                        }
+                    }
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load image: ${src}.`);
+                    // Don't set fallback image, just log error
+                    img.remove(); // Remove broken image from DOM
+                };
+                elements.backgroundContainer.appendChild(img);
+                newImages.push(img);
+            });
+
+            // If there are images, ensure the first one is active after a short delay
+            setTimeout(() => {
+                if (newImages.length > 0 && newImages[state.currentBackgroundIndex]) {
+                    newImages[state.currentBackgroundIndex].classList.add('active');
+                }
+            }, 100); // Small delay to allow images to be appended
+        }
+        
+        function startBackgroundRotation() {
+            // Clear any existing interval to prevent multiple intervals running
+            if (backgroundInterval) {
+                clearInterval(backgroundInterval);
+            }
+            // Change background every 60 seconds
+            backgroundInterval = setInterval(() => {
+                changeBackground();
+            }, 60000);
+        }
+        
+        function changeBackground() {
+            const images = document.querySelectorAll('.background-image');
+            
+            // Only change if we have multiple images
+            if (images.length < 2) return;
+            
+            // Fade out current image
+            images[state.currentBackgroundIndex].classList.remove('active');
+            
+            // Select next image
+            state.currentBackgroundIndex = (state.currentBackgroundIndex + 1) % state.backgroundImages.length;
+            
+            // Fade in new image
+            images[state.currentBackgroundIndex].classList.add('active');
+        }
+        
+        function changeBackgroundTopic(topic) {
+            if (topic === state.currentTopic && !state.isFetching) {
+                showToast(`Already showing ${topic} backgrounds.`);
+                return;
+            }
+            
+            // Fetch new images for the topic
+            fetchWallhavenImages(topic);
+        }
+        
+        // =========================================================================
+        // PINNED SITES
+        // =========================================================================
+        function renderPinnedSites() {
+            elements.sitesGrid.innerHTML = '';
+            
+            state.pinnedSites.forEach((site) => {
+                const siteCard = document.createElement('div');
+                siteCard.className = 'site-card';
+                
+                siteCard.innerHTML = `
+                    <div class="site-icon">
+                        ${site.favicon 
+                            ? `<img src="${site.favicon}" alt="${site.name}" onerror="this.src='https://placehold.co/28x28/000000/FFFFFF?text=Fail'; this.parentNode.innerHTML='<i class=\'fas fa-globe\'></i>'">` 
+                            : `<i class="fas fa-globe"></i>`}
+                    </div>
+                    <span class="site-name">${site.name}</span>
+                    <div class="site-actions">
+                        <button class="action-btn site-menu-btn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="action-menu">
+                            <div class="action-item edit-site">
+                                <i class="fas fa-edit"></i> Edit
+                            </div>
+                            <div class="action-item delete-site">
+                                <i class="fas fa-trash"></i> Delete
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Click to open site
+                siteCard.querySelector('.site-icon').addEventListener('click', () => {
+                    window.open(site.url, '_blank');
+                });
+                
+                // Site menu actions
+                const menuBtn = siteCard.querySelector('.site-menu-btn');
+                const actionMenu = siteCard.querySelector('.action-menu');
+                
+                menuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Close any other open menus
+                    document.querySelectorAll('.action-menu').forEach(menu => {
+                        if (menu !== actionMenu) menu.classList.remove('active');
+                    });
+                    actionMenu.classList.toggle('active');
+                });
+                
+                // Edit action
+                siteCard.querySelector('.edit-site').addEventListener('click', () => {
+                    openSiteModal(site);
+                });
+                
+                // Delete action
+                siteCard.querySelector('.delete-site').addEventListener('click', () => {
+                    deleteSite(site.id);
+                    actionMenu.classList.remove('active');
+                });
+                
+                elements.sitesGrid.appendChild(siteCard);
+            });
+            
+            // Add the "+" button for adding new sites
+            const addCard = document.createElement('div');
+            addCard.className = 'site-card';
+            addCard.innerHTML = `
+                <div class="site-icon" style="background: rgba(255,255,255,0.15);">
+                    <i class="fas fa-plus" style="color: var(--primary); font-size: 24px;"></i>
+                </div>
+                <span class="site-name">Add Site</span>
+            `;
+            
+            addCard.addEventListener('click', () => {
+                openSiteModal();
+            });
+            
+            elements.sitesGrid.appendChild(addCard);
+        }
+        
+        function openSiteModal(site = null) {
+            elements.modalTitle.textContent = site ? "Edit Site" : "Add New Site";
+            elements.siteName.value = site ? site.name : "";
+            elements.siteUrl.value = site ? site.url : "https://";
+            elements.deleteBtn.style.display = site ? "block" : "none";
+            
+            if (site) {
+                state.editingSite = site;
+                elements.deleteBtn.dataset.id = site.id;
+            } else {
+                state.editingSite = null;
+            }
+            
+            elements.siteModal.classList.add('active');
+        }
+        
+        function closeSiteModal() {
+            elements.siteModal.classList.remove('active');
+            state.editingSite = null;
+        }
+        
+        function saveSite() {
+            const name = elements.siteName.value.trim();
+            const url = elements.siteUrl.value.trim();
+            
+            if (!name || !url) {
+                showToast("Please fill in both fields");
+                return;
+            }
+            
+            // Simple URL validation
+            if (!isValidUrl(url)) {
+                showToast("Please enter a valid URL (include http:// or https://)");
+                return;
+            }
+            
+            if (state.editingSite) {
+                // Update existing site
+                const siteIndex = state.pinnedSites.findIndex(s => s.id === state.editingSite.id);
+                if (siteIndex !== -1) {
+                    state.pinnedSites[siteIndex].name = name;
+                    state.pinnedSites[siteIndex].url = url;
+                    
+                    // Fetch new favicon if URL changed
+                    if (state.pinnedSites[siteIndex].url !== url) {
+                        fetchFavicon(url).then(favicon => {
+                            state.pinnedSites[siteIndex].favicon = favicon;
+                            saveState();
+                            renderPinnedSites();
+                        });
+                    } else {
+                        saveState();
+                        renderPinnedSites();
+                    }
+                }
+            } else {
+                // Add new site
+                const newSite = {
+                    id: Date.now(), // Simple unique ID
+                    name,
+                    url,
+                    favicon: ""
+                };
+                
+                // Fetch favicon
+                fetchFavicon(url).then(favicon => {
+                    newSite.favicon = favicon;
+                    state.pinnedSites.push(newSite);
+                    saveState();
+                    renderPinnedSites();
+                });
+            }
+            
+            closeSiteModal();
+            showToast(`Site ${state.editingSite ? "updated" : "added"} successfully!`);
+        }
+        
+        function deleteSite(id) {
+            if (!id && state.editingSite) {
+                id = state.editingSite.id;
+            }
+            
+            state.pinnedSites = state.pinnedSites.filter(site => site.id != id);
+            saveState();
+            renderPinnedSites();
+            closeSiteModal();
+            showToast("Site deleted successfully!");
+        }
+        
+        async function fetchFavicon(url) {
+            // Try to get favicon from the website
+            try {
+                const domain = new URL(url).hostname;
+                return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            } catch (e) {
+                return ""; // Return empty if fails
+            }
+        }
+        
+        function isValidUrl(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        // =========================================================================
+        // SEARCH FUNCTIONALITY
+        // =========================================================================
+        function toggleEngineDropdown() {
+            elements.engineDropdown.classList.toggle('active');
+            
+            // Add event listeners to engine options
+            if (elements.engineDropdown.classList.contains('active')) {
+                document.querySelectorAll('.search-engine-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const engine = option.dataset.engine;
+                        setSearchEngine(engine);
+                        elements.engineDropdown.classList.remove('active');
+                    });
+                });
+            }
+        }
+        
+        function setSearchEngine(engine) {
+            if (searchEngines[engine]) {
+                state.currentSearchEngine = engine;
+                const { icon } = searchEngines[engine];
+                
+                // Update logo with icon
+                elements.currentEngine.innerHTML = `<img src="${icon}" alt="${engine}">`;
+                
+                saveState();
+            }
+        }
+        
+        function performSearch() {
+            const query = elements.searchInput.value.trim();
+            if (query) {
+                const searchUrl = searchEngines[state.currentSearchEngine].url + encodeURIComponent(query);
+                window.open(searchUrl, '_blank');
+                elements.searchInput.value = '';
+            }
+        }
+        
+        // =========================================================================
+        // TOPIC MANAGEMENT
+        // =========================================================================
+        function toggleTopicMenu() {
+            elements.topicMenu.classList.toggle('active');
+            console.log("Topic menu active state:", elements.topicMenu.classList.contains('active')); // Debugging log
+        }
+        
+        // =========================================================================
+        // UI HELPERS
+        // =========================================================================
+        function showToast(message) {
+            elements.toast.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+            elements.toast.classList.add('show');
+            
+            setTimeout(() => {
+                elements.toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
