@@ -140,6 +140,10 @@
     accent-color: var(--color-primary);
 }
 
+.radio-group .button-tertiary {
+    flex-basis: 100%; 
+}
+
 .slider-group {
     display: flex;
     flex-direction: column;
