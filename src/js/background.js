@@ -9,7 +9,7 @@ const BackgroundManager = {
         bgImage.onload = () => bgImage.classList.add("active");
         bgImage.onerror = () => {
             console.error("Failed to load background image");
-            bgImage.src = "https://placehold.co/1920x1080/202124/e8eaed?text=Fallback+Background";
+            bgImage.src = "https://picsum.photos/1920/1080";
             bgImage.classList.add("active");
         };
     },
