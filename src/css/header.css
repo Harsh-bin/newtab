@@ -32,11 +32,6 @@
   transition: var(--transition-medium);
 }
 
-.header-button:hover {
-  background: var(--color-surface-hover);
-  transform: scale(1.06);
-}
-
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -74,6 +69,7 @@
 
 .dropdown-item:hover {
   background: var(--color-surface-hover);
+  transform: scale(1.06);
 }
 
 .dropdown-item i {
@@ -127,4 +123,99 @@
 
 .dropdown-item input:checked + .toggle-slider:before {
   transform: translateX(16px);
+}
+
+/* --- Google Apps Dropdown --- */
+.google-apps-dropdown {
+  width: 320px;
+  height: auto;
+  max-height: 400px;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+}
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.app-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text-on-surface);
+  transition: background-color var(--transition-fast);
+}
+
+.app-item:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.app-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.app-label {
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Scrollbar for Google Apps Dropdown */
+.google-apps-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 10px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Scrollbar for Google Apps Dropdown */
+.google-apps-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-track-piece:start {
+  margin-top: 10px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-track-piece:end {
+  margin-bottom: 10px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 10px;
+}
+
+.google-apps-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }

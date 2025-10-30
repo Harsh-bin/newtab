@@ -79,14 +79,13 @@ body.drag-mode-sortable-active .site-card:hover .site-actions {
 .blur-enabled .site-icon,
 .blur-enabled .action-menu,
 .blur-enabled .modal-content,
-.blur-enabled .side-panel,
 .blur-enabled .toast,
 .blur-enabled .drag-mode-button,
 .blur-enabled #progressModal .progress-modal-content,
 .blur-enabled .pinned-sites-section,
 .blur-enabled .quote-content-wrapper {
-  backdrop-filter: blur(var(--ui-blur-amount));
-  -webkit-backdrop-filter: blur(var(--ui-blur-amount));
+  backdrop-filter: blur(var(--ui-blur-amount)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--ui-blur-amount)) saturate(180%);
 }
 
 .blur-enabled .header-button,
@@ -100,19 +99,18 @@ body.drag-mode-sortable-active .site-card:hover .site-actions {
 .blur-enabled .toast,
 .blur-enabled .close-modal-button,
 .blur-enabled .action-button.site-menu-button,
+.blur-enabled .quote-content-wrapper,
 .blur-enabled #progressModal .progress-modal-content {
   background-color: var(--color-surface-bright-blurred);
+  border: 1px solid var(--border-blurred);
 }
 
-.blur-enabled .side-panel,
-.blur-enabled .pinned-sites-section,
-.blur-enabled .quote-content-wrapper {
+.blur-enabled .pinned-sites-section {
   background-color: var(--color-surface-dim-blurred);
 }
 
-.blur-enabled .suggestion-item.selected,
-.blur-enabled .suggestion-item:hover {
-  background: var(--color-surface-hover-blurred);
+.blur-enabled .suggestion-item.selected {
+  background: var(--color-selected-blurred);
 }
 
 .blur-enabled #quoteBox {
@@ -127,20 +125,14 @@ body.drag-mode-sortable-active .site-card:hover .site-actions {
   -webkit-backdrop-filter: none !important;
 }
 
-.blur-enabled .close-panel-button,
 .blur-enabled .close-modal-button {
   background-color: transparent;
+  border: none;
 }
 
-.blur-enabled .drag-mode-button.button-confirm {
-  background: var(--color-primary);
-}
-
-.blur-enabled .drag-mode-button.button-cancel {
-  background: var(--color-secondary);
-}
 
 .blur-enabled .header-button:hover,
+.blur-enabled .app-item:hover,
 .blur-enabled .dropdown-item:hover,
 .blur-enabled .search-button:hover,
 .blur-enabled .search-engine-option:hover,
@@ -149,7 +141,8 @@ body.drag-mode-sortable-active .site-card:hover .site-actions {
 .blur-enabled .close-modal-button:hover,
 .blur-enabled .button-secondary:hover,
 .blur-enabled .close-panel-button:hover,
-.blur-enabled .button-tertiary:hover {
+.blur-enabled .button-tertiary:hover,
+.blur-enabled .suggestion-item:hover {
   background-color: var(--color-surface-hover-blurred);
 }
 

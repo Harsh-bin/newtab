@@ -4,6 +4,8 @@ const DOM = {
   body: document.body,
   mainContent: document.querySelector(".main-content"),
   appContainer: document.querySelector(".app-container"),
+  googleAppsBtn: document.getElementById("googleAppsBtn"),
+  googleAppsDropdown: document.getElementById("googleAppsDropdown"),
   themeBtn: document.getElementById("themeBtn"),
   themeDropdown: document.getElementById("themeDropdown"),
   settingsBtn: document.getElementById("settingsBtn"),

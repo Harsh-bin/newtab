@@ -199,7 +199,7 @@
 }
 
 .search-input::placeholder {
-  color: var(--color-text-secondary);
+  color: var(--color-text-on-surface);
 }
 
 .search-button {
@@ -342,7 +342,9 @@
   gap: var(--spacing-md);
 }
 
-.suggestion-item.selected,
+.suggestion-item.selected{
+  background-color: var(--color-selected);
+}
 .suggestion-item:hover {
   background-color: var(--color-surface-hover);
 }

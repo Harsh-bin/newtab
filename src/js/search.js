@@ -21,10 +21,15 @@ function handleSuggestions(data) {
         const div = document.createElement("div");
         div.className = "suggestion-item";
 
+        let displayText = text;
         const isLink = Utils.isUrl(text);
+
         if (isLink) {
             iconClass = "fa-link";
             div.classList.add("link-suggestion");
+            if (!/^(https?|file):\/\//i.test(text) && !/^(localhost|127\.0\.0\.1|\[::1\]|(\d{1,3}\.){3}\d{1,3})/i.test(text)) {
+                displayText = `https://` + text;
+            }
         }
 
         const icon = document.createElement("i");
@@ -33,7 +38,7 @@ function handleSuggestions(data) {
 
         const textSpan = document.createElement("span");
         textSpan.className = "suggestion-text";
-        textSpan.textContent = text;
+        textSpan.textContent = displayText;
         div.appendChild(textSpan);
 
         div.onclick = () => {
@@ -79,8 +84,8 @@ function handleSuggestions(data) {
     if (linkSuggestions.length > 0) {
         hasHistory = true;
         linkSuggestions.forEach((s) => {
-            historyItems.add(s);
-            suggestionsContainer.appendChild(createSuggestionElement(s, "link", "fa-link"));
+            historyItems.add(s.url);
+            suggestionsContainer.appendChild(createSuggestionElement(s.url, "link", "fa-link"));
         });
     }
 
@@ -128,6 +133,15 @@ function handleSuggestions(data) {
  * Manages search and link history for suggestions.
  */
 const HistoryManager = {
+
+    _normalizeUrlForStorage(url) {
+        const trimmedUrl = url.trim();
+        if (/^(localhost|127\.0\.0\.1|\[::1\]|(\d{1,3}\.){3}\d{1,3}|file:\/\/)/i.test(trimmedUrl) || trimmedUrl.startsWith("http://")) {
+            return trimmedUrl;
+        }
+        return trimmedUrl.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    },
+
     addSearch(query) {
         const trimmedQuery = query.trim();
         if (!trimmedQuery) return;
@@ -153,16 +167,16 @@ const HistoryManager = {
     },
 
     addLink(url) {
-        const trimmedUrl = url.trim();
-        if (!trimmedUrl) return;
+        const normalizedUrl = this._normalizeUrlForStorage(url);
+        if (!normalizedUrl) return;
 
-        let currentLinkEntry = appState.linkHistory.find((item) => item.url === trimmedUrl);
+        let currentLinkEntry = appState.linkHistory.find((item) => item.url === normalizedUrl);
         if (!currentLinkEntry) {
-            currentLinkEntry = { url: trimmedUrl, visitCount: 0 };
+            currentLinkEntry = { url: normalizedUrl, visitCount: 0 };
             appState.linkHistory.push(currentLinkEntry);
         }
 
-        if (trimmedUrl === appState.lastVisitedLinkURL) {
+        if (normalizedUrl === this._normalizeUrlForStorage(appState.lastVisitedLinkURL || '')) {
             currentLinkEntry.visitCount = Math.min(currentLinkEntry.visitCount + 1, 5);
         } else {
             currentLinkEntry.visitCount = 1;
@@ -171,7 +185,7 @@ const HistoryManager = {
         const newVisitCount = currentLinkEntry.visitCount;
         if (newVisitCount > 0) {
             appState.linkHistory.forEach((item) => {
-                if (item.url !== trimmedUrl) {
+                if (item.url !== normalizedUrl) {
                     if (item.visitCount > 0 && newVisitCount >= item.visitCount) {
                         item.visitCount = 0;
                     }
@@ -179,7 +193,7 @@ const HistoryManager = {
             });
         }
 
-        appState.lastVisitedLinkURL = trimmedUrl;
+        appState.lastVisitedLinkURL = normalizedUrl;
         appState.linkHistory.sort((a, b) => b.visitCount - a.visitCount);
 
         if (appState.linkHistory.length > 200) {
@@ -190,8 +204,8 @@ const HistoryManager = {
     },
 
     removeLink(url) {
-        const trimmedUrl = url.trim();
-        appState.linkHistory = appState.linkHistory.filter((item) => item.url !== trimmedUrl);
+        const normalizedUrl = this._normalizeUrlForStorage(url);
+        appState.linkHistory = appState.linkHistory.filter((item) => item.url !== normalizedUrl);
         DebouncedSave.immediateSave();
         Toast.show("Link removed from history.");
     },
@@ -200,9 +214,11 @@ const HistoryManager = {
         const trimmedInput = inputValue.trim().toLowerCase();
         if (!trimmedInput) return [];
         return appState.linkHistory
-            .filter((item) => item.url.replace(/^(https?:\/\/)?/, "").toLowerCase().startsWith(trimmedInput))
-            .sort((a, b) => b.visitCount - a.visitCount)
-            .map((item) => item.url);
+            .filter((item) => {
+                const searchableUrl = item.url.replace(/^http:\/\//, '');
+                return searchableUrl.toLowerCase().startsWith(trimmedInput)
+            })
+            .sort((a, b) => b.visitCount - a.visitCount);
     },
 };
 
@@ -238,7 +254,7 @@ const SearchManager = {
 
         if (isLink) {
             let url = query;
-            if (!/^(https?|ftp):\/\//i.test(url)) {
+            if (!/^(https?|ftp|file):\/\//i.test(url)) {
                 url = /^(localhost|127\.0\.0\.1|\[::1\]|(\d{1,3}\.){3}\d{1,3})/i.test(url) ? "http://" + url : "https://" + url;
             }
 
@@ -386,18 +402,24 @@ const SearchManager = {
             }
 
             if (!isDeletionKey && originalValue.length > 0 && selectionStart === originalValue.length) {
-                let bestMatch = HistoryManager.getLinkSuggestions(originalValue)[0];
+                let bestMatchItem = HistoryManager.getLinkSuggestions(originalValue)[0];
                 let isLink = true;
 
-                if (!bestMatch) {
-                    bestMatch = HistoryManager.getSearchSuggestions(originalValue)[0];
+                if (!bestMatchItem) {
+                    bestMatchItem = { url: HistoryManager.getSearchSuggestions(originalValue)[0] };
                     isLink = false;
                 }
 
-                if (bestMatch) {
-                    const cleanBestMatch = isLink ? bestMatch.replace(/^(https?:\/\/)?/, "") : bestMatch;
-                    if (cleanBestMatch.toLowerCase().startsWith(originalValue.toLowerCase()) && cleanBestMatch.length > originalValue.length) {
-                        input.value = originalValue + cleanBestMatch.substring(originalValue.length);
+                if (bestMatchItem && bestMatchItem.url) {
+                    const searchableBestMatch = isLink ? bestMatchItem.url.replace(/^http:\/\//, '') : bestMatchItem.url;
+
+                    if (searchableBestMatch.toLowerCase().startsWith(originalValue.toLowerCase()) && searchableBestMatch.length > originalValue.length) {
+                        let displayedMatch = searchableBestMatch;
+                        if (isLink && !/^(https?|file):\/\//i.test(bestMatchItem.url)) {
+                            displayedMatch = 'https://' + bestMatchItem.url;
+                        }
+
+                        input.value = displayedMatch;
                         input.setSelectionRange(originalValue.length, input.value.length);
                     }
                 }

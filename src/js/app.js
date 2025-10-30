@@ -174,6 +174,25 @@ const App = {
     window.addEventListener("beforeunload", () => localStorage.removeItem("lastBackground"));
   },
 
+  resetUI() {
+    // Close side panel if active
+    if (DOM.customizeSidePanel.classList.contains("active")) {
+      CustomizationManager.toggleSidePanel();
+    }
+    // Close all dropdowns
+    DropdownManager.closeAll();
+    // Stop search loading animation
+    DOM.searchLogoWrapper.classList.remove("loading");
+    // Clear search input and suggestions
+    DOM.searchInput.value = "";
+    if (DOM.suggestionsContainer) {
+      DOM.suggestionsContainer.innerHTML = "";
+      DOM.suggestionsContainer.classList.remove("active");
+    }
+    // Fetch a new background image
+    BackgroundManager.fetchRandom();
+  },
+
   setupGlobalEventListeners() {
     siteModalOutsideClickHandler = ModalManager.handleOutsideClick(DOM.siteModal, ".modal-content", [".site-card .action-button", ".action-item", ".add-site-card"]);
     allSitesModalOutsideClickHandler = ModalManager.handleOutsideClick(DOM.allSitesModal, ".modal-content", [".all-sites-card"]);
@@ -201,5 +220,13 @@ const App = {
         SiteManager.checkGridOverflow();
       }, 50)
     );
+
+    // Add this event listener to handle UI reset on back navigation
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) {
+        // This is true when the page is restored from the back-forward cache
+        this.resetUI();
+      }
+    });
   },
 };

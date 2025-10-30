@@ -17,6 +17,11 @@ const DropdownManager = {
   },
 
   setupEventListeners() {
+    DOM.googleAppsBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      SiteManager.closeActionMenu();
+      DropdownManager.toggle(DOM.googleAppsDropdown);
+    });
     DOM.settingsBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       SiteManager.closeActionMenu();
