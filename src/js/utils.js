@@ -1,5 +1,3 @@
-// --- Utility & Helper Functions ---
-
 /**
  * A collection of general-purpose utility functions.
  */

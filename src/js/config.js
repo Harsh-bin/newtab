@@ -19,3 +19,21 @@ const SEARCH_ENGINES = {
   ecosia: { name: "Ecosia", url: "https://www.ecosia.org/search?q=", icon: "./src/icons/ecosia.png" },
   baidu: { name: "Baidu", url: "https://www.baidu.com/s?wd=", icon: "./src/icons/baidu.png" },
 };
+
+const GOOGLE_APPS = [
+  { id: "account", name: "Account", url: "https://myaccount.google.com/", icon: "./src/icons/apps/account.png" },
+  { id: "search", name: "Search", url: "https://google.com/", icon: "./src/icons/apps/google.png" },
+  { id: "youtube", name: "YouTube", url: "https://www.youtube.com/", icon: "./src/icons/apps/youtube.png" },
+  { id: "gmail", name: "Gmail", url: "https://mail.google.com/", icon: "./src/icons/apps/gmail.png" },
+  { id: "music", name: "YT Music", url: "https://music.youtube.com/", icon: "./src/icons/apps/music.png" },
+  { id: "keep", name: "Keep", url: "https://keep.google.com/", icon: "./src/icons/apps/keep.png" },
+  { id: "drive", name: "Drive", url: "https://drive.google.com/", icon: "./src/icons/apps/drive.png" },
+  { id: "photos", name: "Photos", url: "https://photos.google.com/", icon: "./src/icons/apps/photos.png" },
+  { id: "translate", name: "Translate", url: "https://translate.google.com/", icon: "./src/icons/apps/translate.png" },
+  { id: "calendar", name: "Calendar", url: "https://calendar.google.com/", icon: "./src/icons/apps/calendar.png" },
+  { id: "meet", name: "Meet", url: "https://meet.google.com/", icon: "./src/icons/apps/meet.png" },
+  { id: "contacts", name: "Contacts", url: "https://contacts.google.com/", icon: "./src/icons/apps/contacts.png" },
+  { id: "docs", name: "Docs", url: "https://docs.google.com/document/", icon: "./src/icons/apps/docs.png" },
+  { id: "sheets", name: "Sheets", url: "https://docs.google.com/spreadsheets/", icon: "./src/icons/apps/sheets.png" },
+  { id: "slides", name: "Slides", url: "https://docs.google.com/presentation/", icon: "./src/icons/apps/slides.png" },
+];

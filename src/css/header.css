@@ -156,6 +156,23 @@
   background-color: var(--color-surface-hover);
 }
 
+.apps-grid .sortable-ghost {
+  opacity: 0.4;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.apps-grid .sortable-chosen {
+  cursor: grabbing !important;
+  transform: scale(1.08);
+  background-color: var(--color-surface-hover);
+  box-shadow: 0 5px 15px var(--color-shadow);
+}
+
+.apps-grid .sortable-drag {
+  opacity: 1 !important;
+}
+
 .app-icon {
   width: 48px;
   height: 48px;

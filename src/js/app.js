@@ -4,6 +4,7 @@
  */
 let appState = {
   pinnedSites: [],
+  googleApps: [], 
   currentSearchEngine: "google",
   editingSite: null,
   themePreference: "system",
@@ -18,22 +19,22 @@ let appState = {
   isDragModeActive: false,
   isResizeGridModeActive: false,
   isEditModeActive: false,
-  isBlurEnabled: false,
-  uiBlurAmount: 10,
-  isGridTransparent: false,
+  isBlurEnabled: true,
+  uiBlurAmount: 14,
+  isGridTransparent: true,
   customizationChanged: false,
   searchHistory: [],
   linkHistory: [],
   lastVisitedLinkURL: null,
   movableElementPositions: {
     searchWrapper: { x: 50, y: 30, centered: true },
-    pinnedSitesSection: { y: 45, width: 40, height: 30, centered: true },
-    quoteBox: { x: 2, y: 2, width: 35, height: 8, centered: false },
+    pinnedSitesSection: { y: 45, width: 80, height: 30, centered: true },
+    quoteBox: { x: 0, y: 2, width: 40, height: 20, centered: false },
   },
   initialMovableElementPositions: {
     searchWrapper: { x: 50, y: 30, centered: true },
-    pinnedSitesSection: { y: 45, width: 40, height: 30, centered: true },
-    quoteBox: { x: 2, y: 2, width: 35, height: 8, centered: false },
+    pinnedSitesSection: { y: 45, width: 80, height: 30, centered: true },
+    quoteBox: { x: 0, y: 0, width: 40, height: 20, centered: false },
   },
 };
 
@@ -57,6 +58,7 @@ const App = {
     // Setup module event listeners
     ThemeManager.setupEventListeners();
     DropdownManager.setupEventListeners();
+    GoogleAppsManager.setupEventListeners(); 
     VisibilityManager.setupEventListeners();
     CustomizationManager.setupEventListeners();
     PositionManager.setupEventListeners();
@@ -95,14 +97,18 @@ const App = {
       const parsedState = JSON.parse(savedState);
       const defaultPositions = {
         searchWrapper: { x: 50, y: 30, centered: true },
-        pinnedSitesSection: { y: 45, width: 40, height: 30, centered: true },
-        quoteBox: { x: 2, y: 2, width: 35, height: 8, centered: false },
+        pinnedSitesSection: { y: 45, width: 80, height: 30, centered: true },
+        quoteBox: { x: 0, y: 0, width: 40, height: 20, centered: false },
       };
       const loadedPositions = { ...defaultPositions, ...(parsedState.movableElementPositions || {}) };
 
       appState = { ...appState, ...parsedState, movableElementPositions: loadedPositions };
       appState.searchHistory = parsedState.searchHistory || [];
       appState.lastVisitedLinkURL = parsedState.lastVisitedLinkURL || null;
+
+      if (!appState.googleApps || appState.googleApps.length === 0) {
+        appState.googleApps = [...GOOGLE_APPS];
+      }
 
       let loadedLinkHistory = parsedState.linkHistory || [];
       if (loadedLinkHistory.length > 0 && typeof loadedLinkHistory[0] === "string") {
@@ -120,6 +126,7 @@ const App = {
       }
     } else {
       appState.pinnedSites = [...DEFAULT_PINNED_SITES];
+      appState.googleApps = [...GOOGLE_APPS]; 
     }
     document.documentElement.style.setProperty("--side-panel-width", `${appState.sidePanelWidth}px`);
     if (appState.isDragModeActive) {
@@ -145,6 +152,7 @@ const App = {
     SearchManager.populateEngineDropdown();
     SearchManager.updateAllEngineIcons();
     SiteManager.renderPinnedSites();
+    GoogleAppsManager.render(); 
     QuoteManager.init();
     DOM.togglePinnedSites.checked = appState.hidePinnedSites;
     DOM.toggleSearchBar.checked = appState.hideSearchBar;
@@ -175,21 +183,16 @@ const App = {
   },
 
   resetUI() {
-    // Close side panel if active
     if (DOM.customizeSidePanel.classList.contains("active")) {
       CustomizationManager.toggleSidePanel();
     }
-    // Close all dropdowns
     DropdownManager.closeAll();
-    // Stop search loading animation
     DOM.searchLogoWrapper.classList.remove("loading");
-    // Clear search input and suggestions
     DOM.searchInput.value = "";
     if (DOM.suggestionsContainer) {
       DOM.suggestionsContainer.innerHTML = "";
       DOM.suggestionsContainer.classList.remove("active");
     }
-    // Fetch a new background image
     BackgroundManager.fetchRandom();
   },
 
@@ -199,7 +202,7 @@ const App = {
 
     document.addEventListener("click", (e) => {
       if (appState.isDragModeActive || appState.isResizeGridModeActive || DOM.body.classList.contains("resizing-panel") || DOM.body.classList.contains("resizing-grid")) return;
-      DropdownManager.closeAll();
+      DropdownManager.closeAll(e); 
       siteModalOutsideClickHandler(e);
       allSitesModalOutsideClickHandler(e);
       SiteManager.closeActionMenu();
@@ -221,10 +224,8 @@ const App = {
       }, 50)
     );
 
-    // Add this event listener to handle UI reset on back navigation
     window.addEventListener("pageshow", (event) => {
       if (event.persisted) {
-        // This is true when the page is restored from the back-forward cache
         this.resetUI();
       }
     });

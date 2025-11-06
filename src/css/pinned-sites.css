@@ -96,8 +96,6 @@
   z-index: 2;
 }
 
-
-
 .site-card:not(.sortable-chosen):hover .site-icon {
   transform: translateY(-6px);
   box-shadow: 0 8px 20px var(--color-shadow);

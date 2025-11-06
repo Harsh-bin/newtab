@@ -1,4 +1,41 @@
 /**
+ * Manages the dynamic rendering and reordering of Google Apps.
+ */
+const GoogleAppsManager = {
+  render() {
+    DOM.appsGrid.innerHTML = "";
+    appState.googleApps.forEach((app) => {
+      const appItem = document.createElement("a");
+      appItem.href = app.url;
+      appItem.className = "app-item";
+      appItem.dataset.id = app.id;
+      appItem.innerHTML = `
+        <div class="app-icon"><img src="${app.icon}" alt="${app.name}"/></div>
+        <span class="app-label">${app.name}</span>
+      `;
+      DOM.appsGrid.appendChild(appItem);
+    });
+  },
+
+  setupEventListeners() {
+    if (DOM.appsGrid) {
+      Sortable.create(DOM.appsGrid, {
+        animation: 200,
+        ghostClass: "sortable-ghost",
+        chosenClass: "sortable-chosen",
+        dragClass: "sortable-drag",
+        onEnd: (evt) => {
+          const newOrderIds = Array.from(evt.target.children).map((el) => el.dataset.id);
+          const currentApps = [...appState.googleApps];
+          appState.googleApps = newOrderIds.map((id) => currentApps.find((a) => a.id === id)).filter(Boolean);
+          DebouncedSave.immediateSave();
+        },
+      });
+    }
+  },
+};
+
+/**
  * Handles the logic for opening, closing, and positioning dropdown menus.
  */
 const DropdownManager = {
@@ -11,6 +48,9 @@ const DropdownManager = {
   },
 
   closeAll(excludeDropdown = null) {
+    if (event && event.target && event.target.closest("#googleAppsDropdown")) {
+      return;
+    }
     [DOM.themeDropdown, DOM.settingsDropdown, DOM.engineDropdown].forEach((dropdown) => {
       if (dropdown && dropdown !== excludeDropdown) dropdown.classList.remove("active");
     });

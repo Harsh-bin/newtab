@@ -6,6 +6,7 @@ const DOM = {
   appContainer: document.querySelector(".app-container"),
   googleAppsBtn: document.getElementById("googleAppsBtn"),
   googleAppsDropdown: document.getElementById("googleAppsDropdown"),
+  appsGrid: document.querySelector(".apps-grid"), 
   themeBtn: document.getElementById("themeBtn"),
   themeDropdown: document.getElementById("themeDropdown"),
   settingsBtn: document.getElementById("settingsBtn"),
