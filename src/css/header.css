@@ -76,7 +76,7 @@
   margin-right: var(--spacing-sm);
   width: 20px;
   text-align: center;
-  color: var(--color-primary);
+  color: var(--color-text-on-surface);
 }
 
 .dropdown-item .toggle-switch {

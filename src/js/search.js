@@ -21,15 +21,10 @@ function handleSuggestions(data) {
         const div = document.createElement("div");
         div.className = "suggestion-item";
 
-        let displayText = text;
         const isLink = Utils.isUrl(text);
-
         if (isLink) {
             iconClass = "fa-link";
             div.classList.add("link-suggestion");
-            if (!/^(https?|file):\/\//i.test(text) && !/^(localhost|127\.0\.0\.1|\[::1\]|(\d{1,3}\.){3}\d{1,3})/i.test(text)) {
-                displayText = `https://` + text;
-            }
         }
 
         const icon = document.createElement("i");
@@ -38,7 +33,7 @@ function handleSuggestions(data) {
 
         const textSpan = document.createElement("span");
         textSpan.className = "suggestion-text";
-        textSpan.textContent = displayText;
+        textSpan.textContent = text;
         div.appendChild(textSpan);
 
         div.onclick = () => {
@@ -414,12 +409,8 @@ const SearchManager = {
                     const searchableBestMatch = isLink ? bestMatchItem.url.replace(/^http:\/\//, '') : bestMatchItem.url;
 
                     if (searchableBestMatch.toLowerCase().startsWith(originalValue.toLowerCase()) && searchableBestMatch.length > originalValue.length) {
-                        let displayedMatch = searchableBestMatch;
-                        if (isLink && !/^(https?|file):\/\//i.test(bestMatchItem.url)) {
-                            displayedMatch = 'https://' + bestMatchItem.url;
-                        }
-
-                        input.value = displayedMatch;
+                        const remainder = searchableBestMatch.substring(originalValue.length);
+                        input.value = originalValue + remainder;
                         input.setSelectionRange(originalValue.length, input.value.length);
                     }
                 }
