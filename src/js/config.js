@@ -29,8 +29,9 @@ const SEARCH_ENGINES = {
         name: "DuckDuckGo",
         url: "https://duckduckgo.com/?q=",
         icon: "./src/icons/duckduckgo.png",
-        suggestionUrl: "https://ac.duckduckgo.com/ac/?q={query}",
-        suggestionType: "json",
+        suggestionUrl: "https://suggestqueries.google.com/complete/search?client=chrome&q={query}&callback={callback}",
+        //suggestionUrl: "https://ac.duckduckgo.com/ac/?q={query}&callback={callback}",
+        suggestionType: "jsonp",
         suggestionParser: (data) => data.map(item => item.phrase) || []
     },
     wikipedia: {
@@ -45,15 +46,17 @@ const SEARCH_ENGINES = {
         name: "Brave",
         url: "https://search.brave.com/search?q=",
         icon: "./src/icons/brave.png",
-        suggestionUrl: "https://search.brave.com/api/suggest?q={query}",
-        suggestionType: "json",
+        suggestionUrl: "https://suggestqueries.google.com/complete/search?client=chrome&q={query}&callback={callback}",
+        //suggestionUrl: "https://search.brave.com/api/suggest?q={query}&callback={callback}",
+        suggestionType: "jsonp",
         suggestionParser: (data) => data[1] || []
     },
     yandex: {
         name: "Yandex",
         url: "https://yandex.com/search/?text=",
         icon: "./src/icons/yandex.png",
-        suggestionUrl: "https://yandex.com/suggest/suggest-ya.cgi?v=4&part={query}&callback={callback}",
+        suggestionUrl: "https://suggestqueries.google.com/complete/search?client=chrome&q={query}&callback={callback}",
+        //suggestionUrl: "https://yandex.com/suggest/suggest-ya.cgi?v=4&part={query}&callback={callback}",
         suggestionType: "jsonp",
         suggestionParser: (data) => data[1] || []
     },
@@ -70,9 +73,10 @@ const SEARCH_ENGINES = {
         name: "Ecosia",
         url: "https://www.ecosia.org/search?q=",
         icon: "./src/icons/ecosia.png",
-        suggestionUrl: "https://ac.ecosia.org/autocomplete?q={query}&type=list",
-        suggestionType: "json",
-        suggestionParser: (data) => data.suggestions || []
+        suggestionUrl: "https://suggestqueries.google.com/complete/search?client=chrome&q={query}&callback={callback}",
+        //suggestionUrl: "https://ac.ecosia.org/autocomplete?q={query}&type=list&callback={callback}",
+        suggestionType: "jsonp",
+        suggestionParser: (data) => data[1] || []
     },
     baidu: {
         name: "Baidu",
