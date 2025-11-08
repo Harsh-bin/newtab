@@ -1,130 +1,4 @@
 /**
- * Callback function to process and display search suggestions from the Google API.
- * @param {Array} data - The suggestion data returned from the Google Suggest API.
- */
-function handleSuggestions(data) {
-    const suggestionsContainer = DOM.suggestionsContainer;
-    const searchBox = DOM.searchBox;
-    if (!suggestionsContainer || !searchBox) return;
-
-    suggestionsContainer.innerHTML = "";
-    suggestionsContainer.classList.remove("active");
-    SearchManager.selectedSuggestionIndex = -1;
-
-    const currentQuery = SearchManager.currentQuery;
-    const linkSuggestions = HistoryManager.getLinkSuggestions(currentQuery);
-    const searchSuggestions = HistoryManager.getSearchSuggestions(currentQuery);
-    const googleSuggestions = data[1] || [];
-    const historyItems = new Set();
-
-    const createSuggestionElement = (text, type, iconClass) => {
-        const div = document.createElement("div");
-        div.className = "suggestion-item";
-
-        const isLink = Utils.isUrl(text);
-        if (isLink) {
-            iconClass = "fa-link";
-            div.classList.add("link-suggestion");
-        }
-
-        const icon = document.createElement("i");
-        icon.className = `fas ${iconClass}`;
-        div.appendChild(icon);
-
-        const textSpan = document.createElement("span");
-        textSpan.className = "suggestion-text";
-        textSpan.textContent = text;
-        div.appendChild(textSpan);
-
-        div.onclick = () => {
-            DOM.searchInput.value = text;
-            suggestionsContainer.innerHTML = "";
-            suggestionsContainer.classList.remove("active");
-            DOM.searchInput.focus();
-            SearchManager.performSearch(text);
-        };
-
-        if (type === "link" || type === "search") {
-            div.classList.add("history-item");
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-history-btn";
-            deleteBtn.innerHTML = "&times;";
-            deleteBtn.title = `Remove from ${type} history`;
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (type === "link") HistoryManager.removeLink(text);
-                else HistoryManager.removeSearch(text);
-
-                div.remove();
-
-                const remainingItems = suggestionsContainer.querySelectorAll(".suggestion-item");
-                if (remainingItems.length === 0) {
-                    suggestionsContainer.classList.remove("active");
-                } else {
-                    const separators = suggestionsContainer.querySelectorAll("hr");
-                    separators.forEach((hr) => {
-                        if (!hr.previousElementSibling || hr.previousElementSibling.tagName === "HR" || !hr.nextElementSibling) {
-                            hr.remove();
-                        }
-                    });
-                }
-            };
-            div.appendChild(deleteBtn);
-        }
-
-        return div;
-    };
-
-    let hasHistory = false;
-    if (linkSuggestions.length > 0) {
-        hasHistory = true;
-        linkSuggestions.forEach((s) => {
-            historyItems.add(s.url);
-            suggestionsContainer.appendChild(createSuggestionElement(s.url, "link", "fa-link"));
-        });
-    }
-
-    if (searchSuggestions.length > 0) {
-        if (hasHistory) suggestionsContainer.appendChild(document.createElement("hr"));
-        hasHistory = true;
-        searchSuggestions.forEach((s) => {
-            historyItems.add(s);
-            suggestionsContainer.appendChild(createSuggestionElement(s, "search", "fa-history"));
-        });
-    }
-
-    if (googleSuggestions.length > 0) {
-        if (hasHistory) suggestionsContainer.appendChild(document.createElement("hr"));
-        googleSuggestions.forEach((s) => {
-            if (!historyItems.has(s)) {
-                suggestionsContainer.appendChild(createSuggestionElement(s, "google", "fa-search"));
-            }
-        });
-    }
-
-    if (suggestionsContainer.hasChildNodes()) {
-        const searchBoxRect = searchBox.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        suggestionsContainer.style.visibility = "hidden";
-        suggestionsContainer.style.display = "block";
-        const suggestionsHeight = suggestionsContainer.offsetHeight;
-        suggestionsContainer.style.visibility = "";
-        suggestionsContainer.style.display = "";
-        const spaceBelow = viewportHeight - searchBoxRect.bottom;
-        const requiredSpace = suggestionsHeight + 15;
-        if (spaceBelow < requiredSpace && searchBoxRect.top > requiredSpace) {
-            suggestionsContainer.style.top = `${searchBoxRect.top - suggestionsHeight - 10}px`;
-        } else {
-            suggestionsContainer.style.top = `${searchBoxRect.bottom + 10}px`;
-        }
-        suggestionsContainer.style.left = `${searchBoxRect.left}px`;
-        suggestionsContainer.style.width = `${searchBoxRect.width}px`;
-        suggestionsContainer.classList.add("active");
-    }
-}
-
-
-/**
  * Manages search and link history for suggestions.
  */
 const HistoryManager = {
@@ -224,6 +98,8 @@ const HistoryManager = {
 const SearchManager = {
     currentQuery: "",
     selectedSuggestionIndex: -1,
+    _suggestionRequestController: null,
+    _jsonpRequestCounter: 0,
 
     setEngine(engineKey) {
         if (SEARCH_ENGINES[engineKey]) {
@@ -263,6 +139,207 @@ const SearchManager = {
 
         this.selectedSuggestionIndex = -1;
         DOM.suggestionsContainer.classList.remove("active");
+    },
+
+    fetchSuggestions(query, engineOverride = null) {
+        if (this._suggestionRequestController) {
+            if (this._suggestionRequestController.abort) {
+                this._suggestionRequestController.abort();
+            }
+        }
+
+        const engineKey = engineOverride || appState.currentSearchEngine;
+        const engineConfig = SEARCH_ENGINES[engineKey];
+
+        if (!engineConfig || !engineConfig.suggestionUrl) {
+            this.renderSuggestions([], query);
+            return;
+        }
+
+        const encodedQuery = encodeURIComponent(query);
+
+        if (engineConfig.suggestionType === 'json') {
+            const controller = new AbortController();
+            this._suggestionRequestController = controller;
+            const url = engineConfig.suggestionUrl.replace('{query}', encodedQuery);
+
+            fetch(url, { signal: controller.signal })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    this.processIncomingSuggestions(data, engineKey, query);
+                })
+                .catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error(`Suggestion fetch error for ${engineKey}:`, error);
+                    }
+                });
+        } else if (engineConfig.suggestionType === 'jsonp') {
+            const script = document.createElement("script");
+            const callbackName = 'jsonpCallback' + this._jsonpRequestCounter++;
+
+            window[callbackName] = (data) => {
+                this.processIncomingSuggestions(data, engineKey, query);
+                try {
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                } catch (e) {}
+            };
+
+            const url = engineConfig.suggestionUrl
+                .replace('{query}', encodedQuery)
+                .replace('{callback}', callbackName);
+
+            script.src = url;
+            script.onerror = () => {
+                console.error(`JSONP request failed for ${engineKey}`);
+                delete window[callbackName];
+                try {
+                    document.body.removeChild(script);
+                } catch (e) {}
+            };
+
+            document.body.appendChild(script);
+        }
+    },
+
+    processIncomingSuggestions(data, engineKey, query) {
+        const originalQuery = query || this.currentQuery;
+        const engineConfig = SEARCH_ENGINES[engineKey];
+        if (!engineConfig) return;
+
+        try {
+            const suggestions = engineConfig.suggestionParser(data);
+            this.renderSuggestions(suggestions, originalQuery);
+        } catch (e) {
+            console.error(`Error parsing suggestions for ${engineKey}:`, e);
+            this.renderSuggestions([], originalQuery);
+        }
+    },
+
+    renderSuggestions(apiSuggestions, originalQuery) {
+        if (originalQuery !== this.currentQuery) {
+            return;
+        }
+
+        const suggestionsContainer = DOM.suggestionsContainer;
+        const searchBox = DOM.searchBox;
+        if (!suggestionsContainer || !searchBox) return;
+
+        suggestionsContainer.innerHTML = "";
+        suggestionsContainer.classList.remove("active");
+        this.selectedSuggestionIndex = -1;
+
+        const linkSuggestions = HistoryManager.getLinkSuggestions(originalQuery);
+        const searchSuggestions = HistoryManager.getSearchSuggestions(originalQuery);
+        const historyItems = new Set();
+
+        const createSuggestionElement = (text, type, iconClass) => {
+            const div = document.createElement("div");
+            div.className = "suggestion-item";
+
+            const isLink = Utils.isUrl(text);
+            if (isLink) {
+                iconClass = "fa-link";
+                div.classList.add("link-suggestion");
+            }
+
+            const icon = document.createElement("i");
+            icon.className = `fas ${iconClass}`;
+            div.appendChild(icon);
+
+            const textSpan = document.createElement("span");
+            textSpan.className = "suggestion-text";
+            textSpan.textContent = text;
+            div.appendChild(textSpan);
+
+            div.onclick = () => {
+                DOM.searchInput.value = text;
+                suggestionsContainer.innerHTML = "";
+                suggestionsContainer.classList.remove("active");
+                DOM.searchInput.focus();
+                this.performSearch(text);
+            };
+
+            if (type === "link" || type === "search") {
+                div.classList.add("history-item");
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "delete-history-btn";
+                deleteBtn.innerHTML = "&times;";
+                deleteBtn.title = `Remove from ${type} history`;
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (type === "link") HistoryManager.removeLink(text);
+                    else HistoryManager.removeSearch(text);
+
+                    div.remove();
+
+                    const remainingItems = suggestionsContainer.querySelectorAll(".suggestion-item");
+                    if (remainingItems.length === 0) {
+                        suggestionsContainer.classList.remove("active");
+                    } else {
+                        const separators = suggestionsContainer.querySelectorAll("hr");
+                        separators.forEach((hr) => {
+                            if (!hr.previousElementSibling || hr.previousElementSibling.tagName === "HR" || !hr.nextElementSibling) {
+                                hr.remove();
+                            }
+                        });
+                    }
+                };
+                div.appendChild(deleteBtn);
+            }
+
+            return div;
+        };
+
+        let hasHistory = false;
+        if (linkSuggestions.length > 0) {
+            hasHistory = true;
+            linkSuggestions.forEach((s) => {
+                historyItems.add(s.url);
+                suggestionsContainer.appendChild(createSuggestionElement(s.url, "link", "fa-link"));
+            });
+        }
+
+        if (searchSuggestions.length > 0) {
+            if (hasHistory) suggestionsContainer.appendChild(document.createElement("hr"));
+            hasHistory = true;
+            searchSuggestions.forEach((s) => {
+                historyItems.add(s);
+                suggestionsContainer.appendChild(createSuggestionElement(s, "search", "fa-history"));
+            });
+        }
+
+        if (apiSuggestions.length > 0) {
+            if (hasHistory) suggestionsContainer.appendChild(document.createElement("hr"));
+            apiSuggestions.forEach((s) => {
+                if (!historyItems.has(s)) {
+                    suggestionsContainer.appendChild(createSuggestionElement(s, "api", "fa-search"));
+                }
+            });
+        }
+
+        if (suggestionsContainer.hasChildNodes()) {
+            const searchBoxRect = searchBox.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            suggestionsContainer.style.visibility = "hidden";
+            suggestionsContainer.style.display = "block";
+            const suggestionsHeight = suggestionsContainer.offsetHeight;
+            suggestionsContainer.style.visibility = "";
+            suggestionsContainer.style.display = "";
+            const spaceBelow = viewportHeight - searchBoxRect.bottom;
+            const requiredSpace = suggestionsHeight + 15;
+            if (spaceBelow < requiredSpace && searchBoxRect.top > requiredSpace) {
+                suggestionsContainer.style.top = `${searchBoxRect.top - suggestionsHeight - 10}px`;
+            } else {
+                suggestionsContainer.style.top = `${searchBoxRect.bottom + 10}px`;
+            }
+            suggestionsContainer.style.left = `${searchBoxRect.left}px`;
+            suggestionsContainer.style.width = `${searchBoxRect.width}px`;
+            suggestionsContainer.classList.add("active");
+        }
     },
 
     populateEngineDropdown() {
@@ -424,11 +501,7 @@ const SearchManager = {
             }
 
             this.selectedSuggestionIndex = -1;
-
-            const script = document.createElement("script");
-            script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(this.currentQuery)}&callback=handleSuggestions`;
-            document.body.appendChild(script);
-            document.body.removeChild(script);
+            this.fetchSuggestions(this.currentQuery);
         });
     },
 };
