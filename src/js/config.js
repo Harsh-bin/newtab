@@ -32,7 +32,7 @@ const SEARCH_ENGINES = {
         suggestionUrl: "https://suggestqueries.google.com/complete/search?client=chrome&q={query}&callback={callback}",
         //suggestionUrl: "https://ac.duckduckgo.com/ac/?q={query}&callback={callback}",
         suggestionType: "jsonp",
-        suggestionParser: (data) => data.map(item => item.phrase) || []
+        suggestionParser: (data) => data[1] || []
     },
     wikipedia: {
         name: "Wikipedia",
@@ -82,7 +82,7 @@ const SEARCH_ENGINES = {
         name: "Baidu",
         url: "https://www.baidu.com/s?wd=",
         icon: "./src/icons/baidu.png",
-        suggestionUrl: "http://suggestion.baidu.com/su?wd={query}&cb={callback}",
+        suggestionUrl: "https://suggestion.baidu.com/su?wd={query}&cb={callback}",
         suggestionType: "jsonp",
         suggestionParser: (data) => data.s || []
     },
