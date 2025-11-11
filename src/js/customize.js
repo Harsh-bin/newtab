@@ -295,22 +295,10 @@ const PositionManager = {
     const container = DOM.mainContent;
     if (!container) return;
 
-    const cols = 7,
-      rows = 2;
-    const cardMinWidth = 68;
-    const cardEstHeight = 120;
-    const gap = 18;
-
-    const targetWidthPx = cols * cardMinWidth + (cols - 1) * gap;
-    const targetHeightPx = rows * cardEstHeight + (rows - 1) * gap;
-
-    const widthPercent = (targetWidthPx / container.clientWidth) * 100;
-    const heightPercent = (targetHeightPx / container.clientHeight) * 100;
-
     const defaultPositions = {
       searchWrapper: { x: 50, y: 30, centered: true },
-      pinnedSitesSection: { y: 45, width: widthPercent, height: heightPercent, centered: true },
-      quoteBox: { x: 2, y: 2, width: 30, height: 8, centered: false },
+      pinnedSitesSection: { y: 45, width: 80, height: 30, centered: true },
+      quoteBox: { x: 0, y: 0, width: 40, height: 20, centered: false },
     };
 
     for (const key in defaultPositions) {
