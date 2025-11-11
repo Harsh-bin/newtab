@@ -29,7 +29,7 @@ let appState = {
   movableElementPositions: {
     searchWrapper: { x: 50, y: 30, centered: true },
     pinnedSitesSection: { y: 45, width: 80, height: 30, centered: true },
-    quoteBox: { x: 0, y: 2, width: 40, height: 20, centered: false },
+    quoteBox: { x: 0, y: 0, width: 40, height: 20, centered: false },
   },
   initialMovableElementPositions: {
     searchWrapper: { x: 50, y: 30, centered: true },
